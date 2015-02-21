@@ -59,13 +59,15 @@ static RBRK : [u8; LONGEST_ESCAPE] = [0x23, 0x31, 0x32, 0x35, 0x3b, 0];
 ///
 /// The implementation works with bytes interpreting them to be ASCII, which means that any
 /// ASCII-compatible encoding, including UTF-8, is supported.
-pub struct Escape<'a, I: Iterator<Item=u8> + 'a> {
+#[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+pub struct Escape<I: Iterator<Item=u8>> {
     inner: I,
     idx: usize,
-    inner_buffer: &'a [u8; LONGEST_ESCAPE]
+    inner_buffer: &'static [u8; LONGEST_ESCAPE]
 }
 
-impl<'a, I: Iterator<Item=u8>> Escape<'a, I> {
+
+impl<I: Iterator<Item=u8>> Escape<I> {
     /// Create a wrapper iterator which will escape all the bytes of internal iterator.
     ///
     /// # Usage
@@ -76,7 +78,7 @@ impl<'a, I: Iterator<Item=u8>> Escape<'a, I> {
     /// let escaped = String::from_utf8(Escape::new(string.bytes()).collect()).unwrap();
     /// assert_eq!("&lt;hello&gt;&amp;world&lt;/hello&gt;", &*escaped);
     /// ```
-    pub fn new(i: I) -> Escape<'a, I> {
+    pub fn new(i: I) -> Escape<I> {
         Escape {
             inner: i,
             idx: 0,
@@ -85,15 +87,17 @@ impl<'a, I: Iterator<Item=u8>> Escape<'a, I> {
     }
 
     #[inline(always)]
-    fn buf(&mut self, escape: &'a [u8; LONGEST_ESCAPE]) -> Option<u8> {
+    fn buf(&mut self, escape: &'static [u8; LONGEST_ESCAPE]) -> Option<u8> {
         self.idx = 0;
         self.inner_buffer = escape;
         Some(0x26)
     }
 }
 
-impl<'a, I: Iterator<Item=u8> + 'a> Iterator for Escape<'a, I> {
+
+impl<I: Iterator<Item=u8>> Iterator for Escape<I> {
     type Item = u8;
+
     fn next(&mut self) -> Option<u8> {
         unsafe {
             if *self.inner_buffer.get_unchecked(self.idx) != 0 {
@@ -128,6 +132,7 @@ impl<'a, I: Iterator<Item=u8> + 'a> Iterator for Escape<'a, I> {
             None
         }
     }
+
     fn size_hint(&self) -> (usize, Option<usize>) {
         let (l, u) = self.inner.size_hint();
         (l, if let Some(u_) = u {u_.checked_mul(LONGEST_ESCAPE)} else {None})
