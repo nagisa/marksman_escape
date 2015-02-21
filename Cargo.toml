@@ -3,3 +3,6 @@
 name = "marksman_escape"
 version = "0.0.1"
 authors = ["Simonas Kazlauskas <git@kazlauskas.me>"]
+description = "HTML-escape strings"
+keywords = ["html", "escape", "sanitise", "sanitize"]
+license = "ISC"
