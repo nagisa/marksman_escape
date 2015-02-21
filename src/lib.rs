@@ -1,4 +1,4 @@
-#![feature(unicode)]
+#![feature(unicode,core,collections)]
 pub use escape::*;
 pub use unescape::*;
 
