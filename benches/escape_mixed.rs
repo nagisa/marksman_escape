@@ -4,7 +4,8 @@ extern crate marksman_escape;
 
 use test::Bencher;
 use test::black_box;
-use marksman_escape::Escaped;
+use marksman_escape::Escape;
+use std::str::StrExt;
 
 static MX_ESCAPES : &'static str = "a<cd>f{bcd}f<bcd>f{bc}e'ab\"d?f@b!d`f{bcd}f&b=d+f(bcd)f%bc$e!
 a<cd>f{bcd}f<bcd>f{bc}e'ab\"d?f@b!d`f{bcd}f&b=d+f(bcd)f%bc$e!s[ytr]02\u{A0}a<cd>f{bcd}f&^<>@!+=@
@@ -22,7 +23,7 @@ a<cd>f{bcd}f<bcd>f{bc}e'ab\"d?f@b!d`f{bcd}f&b=d+f(bcd)f%bc$e!s[ytr]02\u{A0}a<cd>
 fn escape_mixed(b: &mut Bencher){
     b.bytes = MX_ESCAPES.len() as u64;
     b.iter(||{
-        for _ in Escaped::new(MX_ESCAPES) {
+        for _ in Escape::new(MX_ESCAPES.bytes()) {
             black_box(());
         }
     });

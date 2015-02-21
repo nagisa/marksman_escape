@@ -4,7 +4,8 @@ extern crate marksman_escape;
 
 use test::Bencher;
 use test::black_box;
-use marksman_escape::Escaped;
+use marksman_escape::Escape;
+use std::str::StrExt;
 
 static NO_ESCAPES : &'static str = r##"abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef
 fabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdeffabcdefabcdefabcdefabcdefabcdefabcdefabcdefa
@@ -34,7 +35,7 @@ fabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdeffabcdefabcdefabcdefabcdef
 fn escape_no_spec(b: &mut Bencher){
     b.bytes = NO_ESCAPES.len() as u64;
     b.iter(||{
-        for _ in Escaped::new(NO_ESCAPES) {
+        for _ in Escape::new(NO_ESCAPES.bytes()) {
             black_box(());
         }
     });
