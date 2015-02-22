@@ -4,6 +4,9 @@ use std::str;
 use std::char;
 use std::num;
 
+use unescape_named::get_named_ref;
+
+
 /// Unescape a HTML-encoded stream of bytes.
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 pub struct Unescape<I: Iterator<Item=u8>>{
@@ -32,7 +35,7 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
     fn buf_push_char(&mut self, chr: char) {
         let mut buf: [u8; 4] = [0; 4];
         let size = chr.encode_utf8(&mut buf).unwrap();
-        self.decode_buffer.extend(buf.into_iter().take(size).map(|x| {*x}));
+        self.decode_buffer.extend(buf.into_iter().take(size).cloned());
     }
 
     fn next_through_buf(&mut self) -> Option<u8> {
@@ -116,15 +119,42 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
     }
 
     fn unescape_named(&mut self) -> u8 {
-        0x26
+        loop {
+            match self.next_through_buf() {
+                Some(0x41...0x5A) | Some(0x61...0x7A) =>
+                    // HTML5 specifies a few odd named character references that do not end in `;`.
+                    // We have to check our named_ref table on every byte decoded. However this
+                    // could also be a properly delimited character reference, so we must look
+                    // ahead for `;`…
+                    if let Some(0x3B) = self.inner.peek().cloned() {
+                        continue
+                    } else if let Some(string) = get_named_ref(&*self.decode_buffer) {
+                        self.decode_buffer.clear();
+                        self.decode_buffer.reserve(string.len());
+                        self.decode_buffer.push_all(string);
+                        return self.consume_buffer().unwrap();
+                    } else {
+                        continue
+                    },
+                Some(0x3B) => { // end of the character reference.
+                    return if let Some(string) = get_named_ref(&*self.decode_buffer) {
+                        self.decode_buffer.clear();
+                        self.decode_buffer.reserve(string.len());
+                        self.decode_buffer.push_all(string);
+                        self.consume_buffer().unwrap()
+                    } else {
+                        0x26
+                    }
+                },
+                _ => return 0x26 // not a valid named character reference
+            }
+        }
     }
 
     fn unescape_hex(&mut self) -> u8 {
         loop {
             match self.next_through_buf() {
-                Some(0x30...0x39) => continue, // just consuming
-                Some(0x41...0x46) => continue,
-                Some(0x61...0x66) => continue,
+                Some(0x30...0x39) | Some(0x41...0x46) | Some(0x61...0x66) => continue,
                 Some(0x3B) => { // end of the character reference.
                     // Decode reference into bytes;
                     // Our buffer should look like this: #x1A3b5C;
@@ -145,9 +175,7 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
                     };
                     return self.parse_codepoint(codepoint);
                 },
-                _ => { // invalid escape
-                    return 0x26;
-                }
+                _ => return 0x26 // not a valid hexadecimal character reference
             }
 
         }
@@ -177,9 +205,7 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
                     };
                     return self.parse_codepoint(codepoint);
                 },
-                _ => { // invalid escape
-                    return 0x26;
-                }
+                _ => return 0x26 // not a valid decimal character reference
             }
 
         }
@@ -190,7 +216,7 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
         self.buffer_index = 0;
         // We will fill buffer, try to decode character and return first byte
         // Note that at this point `&` should already be read from the iterator.
-        match { self.inner.peek().map(|x| { *x }) } {
+        match { self.inner.peek().cloned() } {
             // All these are not character references, return the already consumed `&`
             Some(0x09) => 0x26,
             Some(0x0A) => 0x26,
@@ -205,7 +231,7 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
             // code made of either decimal or hexadecimal digits, maybe
             Some(0x23) => {
                 self.next_through_buf();
-                match { self.inner.peek().map(|x| { *x }) } {
+                match { self.inner.peek().cloned() } {
                     Some(0x58) | Some(0x78) => {
                         self.next_through_buf();
                         self.unescape_hex()
@@ -214,11 +240,11 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
                     _                 => 0x26 // It wasn’t a valid escape after all
                 }
             }
-            // character reference
-            _ => {
-                panic!("NAMED");
-                // self.unescape_named()
+            // character references begin with ASCII letter
+            Some(0x41...0x5A) | Some(0x61...0x7A) => {
+                self.unescape_named()
             }
+            _ => 0x26
         }
     }
 }
@@ -294,5 +320,24 @@ mod test {
         run_test("&#x2E2e;&#x21;", "⸮!");
         run_test("&#xfffd;", "�"); // REPLACEMENT CHARACTER intended here 😉
         // run_test("&#1231231231231231232123123;", "�"); // REPLACEMENT CHARACTER intended here 😉
+    }
+
+    #[test]
+    fn named_escape(){
+        run_test("&amp;", "&");
+        run_test("&AMP;", "&");
+        run_test("&AMP", "&");
+        run_test("&AmP;", "&AmP;");
+        run_test("&gt;", ">");
+        run_test("&Gt;", "\u{226b}");
+        run_test("&lt;", "<");
+        run_test("&LT", "<");
+        run_test("&excl;", "!");
+        run_test("&&excl;", "&!");
+        run_test("&;&excl;", "&;!");
+        run_test("&12345;", "&12345;");
+        run_test("&UnderParenthesis;", "⏝");
+        run_test("&underParenthesis;", "&underParenthesis;");
+        run_test("&Underparenthesis;", "&Underparenthesis;");
     }
 }
