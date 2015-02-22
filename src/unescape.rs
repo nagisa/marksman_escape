@@ -8,6 +8,14 @@ use unescape_named::get_named_ref;
 
 
 /// Unescape a HTML-encoded stream of bytes.
+///
+/// The [HTML5 named character references][html5-nref] (`&amp;`), decimal character references
+/// (`&#123;`) and hexadecimal character references (`&#x1BA;`) are supported.
+///
+/// The implementation works with bytes interpreting them to be ASCII, which means that any
+/// ASCII-compatible encoding, including UTF-8, is supported.
+///
+/// [html5-nref]: http://www.w3.org/TR/html5/syntax.html#named-character-references
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 pub struct Unescape<I: Iterator<Item=u8>>{
     inner: Peekable<I>,
@@ -17,6 +25,17 @@ pub struct Unescape<I: Iterator<Item=u8>>{
 
 
 impl<I: Iterator<Item=u8>> Unescape<I> {
+    /// Create an iterator adaptor which will unescape all the character references found in the
+    /// internal iterator.
+    ///
+    /// # Usage
+    ///
+    /// ```
+    /// use marksman_escape::Unescape;
+    /// let string = "&lt;hello&gt;&amp;world&#60;/hello&#x3e;";
+    /// let unescaped = String::from_utf8(Unescape::new(string.bytes()).collect()).unwrap();
+    /// assert_eq!("<hello>&world</hello>", &*unescaped);
+    /// ```
     pub fn new(i: I) -> Unescape<I> {
         Unescape {
             inner: i.peekable(),
@@ -32,12 +51,14 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
         self.decode_buffer.push_all(string.as_bytes());
     }
 
+    /// Push a character into buffer
     fn buf_push_char(&mut self, chr: char) {
         let mut buf: [u8; 4] = [0; 4];
         let size = chr.encode_utf8(&mut buf).unwrap();
         self.decode_buffer.extend(buf.into_iter().take(size).cloned());
     }
 
+    /// Read a byte into buffer and return the read byte.
     fn next_through_buf(&mut self) -> Option<u8> {
         if let Some(x) = self.inner.next() {
             self.decode_buffer.push(x);
@@ -47,6 +68,7 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
         }
     }
 
+    /// Read a byte from the buffer and increase buffer index.
     fn consume_buffer(&mut self) -> Option<u8> {
         if self.buffer_index < self.decode_buffer.len() {
             let r = unsafe { *(*self.decode_buffer).get_unchecked(self.buffer_index) };
@@ -57,6 +79,8 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
         }
     }
 
+    /// Convert a character reference number to unicode codepoint, replacing buffer contents,
+    /// and return the first byte
     fn parse_codepoint(&mut self, codepoint: u32) -> u8 {
         match codepoint {
             0x80 => self.buf_set_str("\u{20AC}"),

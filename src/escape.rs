@@ -68,7 +68,7 @@ pub struct Escape<I: Iterator<Item=u8>> {
 
 
 impl<I: Iterator<Item=u8>> Escape<I> {
-    /// Create a wrapper iterator which will escape all the bytes of internal iterator.
+    /// Create an iterator adaptor which will escape all the bytes of internal iterator.
     ///
     /// # Usage
     ///
