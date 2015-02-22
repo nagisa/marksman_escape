@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Escape` struct in crate `marksman_escape`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Escape">
+
+    <title>marksman_escape::Escape - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../main.css">
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <section class="sidebar">
+        
+        <p class='location'><a href='index.html'>marksman_escape</a></p><div class='block struct'><h2>Structs</h2><a class='struct current' href='struct.Escape.html' title='Escape a byte stream with HTML-encoded variants of certain characters.'>Escape</a><a class='struct ' href='struct.Unescape.html' title='Unescape a HTML-encoded stream of bytes.'>Unescape</a></div><div class='block fn'><h2>Functions</h2><a class='fn ' href='fn.get_named_ref.html' title='Get the unicode value of a named reference.'>get_named_ref</a></div>
+    </section>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press 'S' to search, '?' for more options..."
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>marksman_escape</a>::<wbr><a class='struct' href=''>Escape</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+            <a id="collapse-all" href="#">[-]</a>&nbsp;<a id="expand-all" href="#">[+]</a>
+        </span><a id='src-238' href='../src/marksman_escape/escape.rs.html#63-67'>[src]</a></span></h1>
+<pre class='rust struct'>#[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
+pub struct Escape&lt;I: <a class='trait' href='http://doc.rust-lang.org/nightly/core/iter/trait.Iterator.html' title='core::iter::Iterator'>Iterator</a>&lt;Item=<a href='http://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;&gt; {
+    // some fields omitted
+}</pre><div class='docblock'><p>Escape a byte stream with HTML-encoded variants of certain characters.</p>
+
+<p>Current implementation escapes the following list of characters:</p>
+
+<table>
+    <tr>
+        <td>&amp;</td>
+        <td>&lt;</td>
+        <td>&gt;</td>
+        <td>"</td>
+        <td>'</td>
+        <td>`</td>
+        <td>!</td>
+        <td>$</td>
+        <td>%</td>
+    </tr><tr>
+        <td>(</td>
+        <td>)</td>
+        <td>+</td>
+        <td>=</td>
+        <td>@</td>
+        <td>[</td>
+        <td>]</td>
+        <td>{</td>
+        <td>}</td>
+    </tr>
+</table>
+
+<p>This list was built having in mind good XSS protection first and performance second. Note, that
+the list of escaped characters is not a part of stable interface and might change between
+releases.</p>
+
+<p>The implementation works with bytes interpreting them to be ASCII, which means that any
+ASCII-compatible encoding, including UTF-8, is supported.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;I: <a class='trait' href='http://doc.rust-lang.org/nightly/core/iter/trait.Iterator.html' title='core::iter::Iterator'>Iterator</a>&lt;Item=<a href='http://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;&gt; <a class='struct' href='../marksman_escape/struct.Escape.html' title='marksman_escape::Escape'>Escape</a>&lt;I&gt;</code></h3><div class='impl-items'><h4 id='method.new' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.new' class='fnname'>new</a>(i: I) -&gt; <a class='struct' href='../marksman_escape/struct.Escape.html' title='marksman_escape::Escape'>Escape</a>&lt;I&gt;</code></h4>
+<div class='docblock'><p>Create an iterator adaptor which will escape all the bytes of internal iterator.</p>
+
+<h1 id="usage" class='section-header'><a
+                           href="#usage">Usage</a></h1><pre id='rust-example-rendered' class='rust '>
+<span class='kw'>use</span> <span class='ident'>marksman_escape</span>::<span class='ident'>Escape</span>;
+<span class='kw'>let</span> <span class='ident'>string</span> <span class='op'>=</span> <span class='string'>&quot;&lt;hello&gt;&amp;world&lt;/hello&gt;&quot;</span>;
+<span class='kw'>let</span> <span class='ident'>escaped</span> <span class='op'>=</span> <span class='ident'>String</span>::<span class='ident'>from_utf8</span>(<span class='ident'>Escape</span>::<span class='ident'>new</span>(<span class='ident'>string</span>.<span class='ident'>bytes</span>()).<span class='ident'>collect</span>()).<span class='ident'>unwrap</span>();
+<span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='string'>&quot;&amp;lt;hello&amp;gt;&amp;amp;world&amp;lt;/hello&amp;gt;&quot;</span>, <span class='kw-2'>&amp;</span><span class='op'>*</span><span class='ident'>escaped</span>);
+</pre>
+</div></div><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;I: <a class='trait' href='http://doc.rust-lang.org/nightly/core/iter/trait.Iterator.html' title='core::iter::Iterator'>Iterator</a>&lt;Item=<a href='http://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;&gt; <a class='struct' href='../marksman_escape/struct.Escape.html' title='marksman_escape::Escape'>Escape</a>&lt;I&gt;</code></h3><div class='impl-items'><h4 id='method.new' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.new' class='fnname'>new</a>(i: I) -&gt; <a class='struct' href='../marksman_escape/struct.Escape.html' title='marksman_escape::Escape'>Escape</a>&lt;I&gt;</code></h4>
+<div class='docblock'><p>Create an iterator adaptor which will escape all the bytes of internal iterator.</p>
+
+<h1 id="usage" class='section-header'><a
+                           href="#usage">Usage</a></h1><pre id='rust-example-rendered' class='rust '>
+<span class='kw'>use</span> <span class='ident'>marksman_escape</span>::<span class='ident'>Escape</span>;
+<span class='kw'>let</span> <span class='ident'>string</span> <span class='op'>=</span> <span class='string'>&quot;&lt;hello&gt;&amp;world&lt;/hello&gt;&quot;</span>;
+<span class='kw'>let</span> <span class='ident'>escaped</span> <span class='op'>=</span> <span class='ident'>String</span>::<span class='ident'>from_utf8</span>(<span class='ident'>Escape</span>::<span class='ident'>new</span>(<span class='ident'>string</span>.<span class='ident'>bytes</span>()).<span class='ident'>collect</span>()).<span class='ident'>unwrap</span>();
+<span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='string'>&quot;&amp;lt;hello&amp;gt;&amp;amp;world&amp;lt;/hello&amp;gt;&quot;</span>, <span class='kw-2'>&amp;</span><span class='op'>*</span><span class='ident'>escaped</span>);
+</pre>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><a class='stability Stable' title='Stable'></a><code>impl&lt;I: <a class='trait' href='http://doc.rust-lang.org/nightly/core/iter/trait.Iterator.html' title='core::iter::Iterator'>Iterator</a>&lt;Item=<a href='http://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;&gt; <a class='trait' href='http://doc.rust-lang.org/nightly/core/iter/trait.Iterator.html' title='core::iter::Iterator'>Iterator</a> for <a class='struct' href='../marksman_escape/struct.Escape.html' title='marksman_escape::Escape'>Escape</a>&lt;I&gt;</code></h3><div class='impl-items'><h4 id='assoc_type.Item' class='type'><a class='stability Unmarked' title='No stability level'></a><code>type Item = <a href='http://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a></code></h4>
+<h4 id='method.next' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.next' class='fnname'>next</a>(&amp;mut self) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;</code></h4>
+<h4 id='method.size_hint' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.size_hint' class='fnname'>size_hint</a>(&amp;self) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>(<a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, <a class='enum' href='http://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>&gt;)</a></code></h4>
+</div><h3 class='impl'><a class='stability Stable' title='Stable'></a><code>impl&lt;I: <a class='trait' href='http://doc.rust-lang.org/nightly/core/iter/trait.Iterator.html' title='core::iter::Iterator'>Iterator</a>&lt;Item=<a href='http://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;&gt; <a class='trait' href='http://doc.rust-lang.org/nightly/core/iter/trait.Iterator.html' title='core::iter::Iterator'>Iterator</a> for <a class='struct' href='../marksman_escape/struct.Escape.html' title='marksman_escape::Escape'>Escape</a>&lt;I&gt;</code></h3><div class='impl-items'><h4 id='assoc_type.Item' class='type'><a class='stability Unmarked' title='No stability level'></a><code>type Item = <a href='http://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a></code></h4>
+<h4 id='method.next' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.next' class='fnname'>next</a>(&amp;mut self) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.u8.html'>u8</a>&gt;</code></h4>
+<h4 id='method.size_hint' class='method'><a class='stability Stable' title='Stable'></a><code>fn <a href='#method.size_hint' class='fnname'>size_hint</a>(&amp;self) -&gt; <a href='http://doc.rust-lang.org/nightly/std/primitive.tuple.html'>(<a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>, <a class='enum' href='http://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a href='http://doc.rust-lang.org/nightly/std/primitive.usize.html'>usize</a>&gt;)</a></code></h4>
+</div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <div id="help" class="hidden">
+        <div class="shortcuts">
+            <h1>Keyboard shortcuts</h1>
+            <dl>
+                <dt>?</dt>
+                <dd>Show this help dialog</dd>
+                <dt>S</dt>
+                <dd>Focus the search field</dd>
+                <dt>&larrb;</dt>
+                <dd>Move up in search results</dd>
+                <dt>&rarrb;</dt>
+                <dd>Move down in search results</dd>
+                <dt>&#9166;</dt>
+                <dd>Go to active search result</dd>
+            </dl>
+        </div>
+        <div class="infos">
+            <h1>Search tricks</h1>
+            <p>
+                Prefix searches with a type followed by a colon (e.g.
+                <code>fn:</code>) to restrict the search to a given type.
+            </p>
+            <p>
+                Accepted types are: <code>fn</code>, <code>mod</code>,
+                <code>struct</code>, <code>enum</code>,
+                <code>trait</code>, <code>typedef</code> (or
+                <code>tdef</code>).
+            </p>
+        </div>
+    </div>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "marksman_escape";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script async src="../search-index.js"></script>
+</body>
+</html>
