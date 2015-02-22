@@ -6,3 +6,6 @@ authors = ["Simonas Kazlauskas <git@kazlauskas.me>"]
 description = "HTML-escape strings"
 keywords = ["html", "escape", "sanitise", "sanitize"]
 license = "ISC"
+
+repository = "https://github.com/nagisa/marksman_escape/"
+documentation = "https://nagisa.github.io/marksman_escape/"
