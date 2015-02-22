@@ -4,7 +4,7 @@ use std::str;
 use std::char;
 use std::num;
 
-use unescape_named::get_named_ref;
+use unescape_named::{get_named_ref, LONGEST_NAMED_REFERENCE};
 
 
 /// Unescape a HTML-encoded stream of bytes.
@@ -292,9 +292,10 @@ impl<I: Iterator<Item=u8>> Iterator for Unescape<I> {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        const LONGEST_KNOWN_ESCAPE: usize = 20;
         let (l, u) = self.inner.size_hint();
-        (l / LONGEST_KNOWN_ESCAPE, u)
+        // No numerical reference can be longer than 32, which is the length of longest known
+        // named reference.
+        (l / LONGEST_NAMED_REFERENCE, u)
     }
 }
 
