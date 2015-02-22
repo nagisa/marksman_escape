@@ -120,10 +120,10 @@ fn named_ref_simple_common(b: &mut Bencher){
     b.iter(||{
         black_box(get_named_ref(b"amp;").unwrap());
         black_box(get_named_ref(b"lt;").unwrap());
-        // black_box(get_named_ref(b"gt;").unwrap());
+        black_box(get_named_ref(b"gt;").unwrap());
         black_box(get_named_ref(b"amp;").unwrap());
         black_box(get_named_ref(b"lt;").unwrap());
-        // black_box(get_named_ref(b"gt;").unwrap());
+        black_box(get_named_ref(b"gt;").unwrap());
     });
 }
 
