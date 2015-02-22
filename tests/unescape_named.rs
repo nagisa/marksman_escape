@@ -3,6 +3,13 @@ use std::str;
 use marksman_escape::get_named_ref;
 
 #[test]
+fn test_get_named_ref_malformed() {
+    assert!(get_named_ref(b"").is_none());
+    assert!(get_named_ref(b"A").is_none());
+    assert!(get_named_ref(&[0]).is_none());
+}
+
+#[test]
 fn test_get_named_ref(){
     str::from_utf8(get_named_ref(b"AElig").unwrap()).unwrap();
     assert!(get_named_ref(b"AElig ").is_none());
