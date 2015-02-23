@@ -1,8 +1,5 @@
 use std::iter::{Peekable, IntoIterator};
-
-use std::str;
 use std::char;
-use std::num;
 
 use unescape_named::{get_named_ref, LONGEST_NAMED_REFERENCE};
 
@@ -144,14 +141,22 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
 
     fn unescape_named(&mut self) -> u8 {
         loop {
-            match self.next_through_buf() {
-                Some(0x41...0x5A) | Some(0x61...0x7A) =>
+            match self.next_through_buf().map(|x|{ x | 0b0010_0000 }) {
+                Some(b'a'...b'z') | Some(b'0'...b'9') =>
                     // HTML5 specifies a few odd named character references that do not end in `;`.
                     // We have to check our named_ref table on every byte decoded. However this
                     // could also be a properly delimited character reference, so we must look
                     // ahead for `;`…
-                    if let Some(0x3B) = self.inner.peek().cloned() {
-                        continue
+                    if let Some(b';') = self.inner.peek().cloned() {
+                        self.next_through_buf();
+                        return if let Some(string) = get_named_ref(&*self.decode_buffer) {
+                            self.decode_buffer.clear();
+                            self.decode_buffer.reserve(string.len());
+                            self.decode_buffer.push_all(string);
+                            self.consume_buffer().unwrap()
+                        } else {
+                            b'&'
+                        }
                     } else if let Some(string) = get_named_ref(&*self.decode_buffer) {
                         self.decode_buffer.clear();
                         self.decode_buffer.reserve(string.len());
@@ -160,78 +165,52 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
                     } else {
                         continue
                     },
-                Some(0x3B) => { // end of the character reference.
-                    return if let Some(string) = get_named_ref(&*self.decode_buffer) {
-                        self.decode_buffer.clear();
-                        self.decode_buffer.reserve(string.len());
-                        self.decode_buffer.push_all(string);
-                        self.consume_buffer().unwrap()
-                    } else {
-                        0x26
-                    }
-                },
-                _ => return 0x26 // not a valid named character reference
+                _ => return b'&' // not a valid named character reference
             }
         }
     }
 
     fn unescape_hex(&mut self) -> u8 {
+        let mut value: u32 = 0;
         loop {
-            match self.next_through_buf() {
-                Some(0x30...0x39) | Some(0x41...0x46) | Some(0x61...0x66) => continue,
-                Some(0x3B) => { // end of the character reference.
-                    // Decode reference into bytes;
-                    // Our buffer should look like this: #x1A3b5C;
-                    // This means we have to discard bytes from both sides and parse that as
-                    // hexadecimal integer.
-                    let codepoint = match unsafe {
-                        let buf = &self.decode_buffer[2..self.decode_buffer.len() - 1];
-                        num::from_str_radix(str::from_utf8_unchecked(buf), 16)
-                    } {
-                        Ok(n) => n,
-                        // TODO: emit \u{FFFD} on Overflow, Underflow and panic otherwise
-                        // See rust-lang/rust#22639
-                        // Err(Overflow/Underflow) => {
-                        // self.buf_set_str("\u{FFFD}");
-                        // return self.consume_buffer().unwrap();
-                        // }
-                        Err(e) => panic!("Could not decode parsed int: {:?}", e)
-                    };
-                    return self.parse_codepoint(codepoint);
+            match self.next_through_buf().map(|x|{ x | 0b0010_0000 }) {
+                Some(v@b'0'...b'9') => if value < 0x10FFFF {
+                    value = (value * 16) + ((v - b'0') as u32);
                 },
-                _ => return 0x26 // not a valid hexadecimal character reference
+                Some(v@b'a'...b'f') => if value < 0x10FFFF {
+                    value = (value * 16) + ((v - b'a' + 10) as u32);
+                },
+                Some(b';') => { // end of the character reference.
+                    return if value >= 0x10FFFF { // Overflow
+                        self.buf_set_str("\u{FFFD}");
+                        self.consume_buffer().unwrap()
+                    } else {
+                        self.parse_codepoint(value)
+                    };
+                },
+                _ => return b'&' // not a valid hexadecimal character reference
             }
 
         }
     }
 
     fn unescape_dec(&mut self) -> u8 {
+        let mut value: u32 = 0;
         loop {
             match self.next_through_buf() {
-                Some(0x30...0x39) => continue, // just consuming
-                Some(0x3B) => { // end of the character reference.
-                    // Decode reference into bytes;
-                    // Our buffer should look like this: #123456;
-                    // This means we have to discard one byte from both sides and parse that as
-                    // decimal integer.
-                    let codepoint = match unsafe {
-                        let buf = &self.decode_buffer[1..self.decode_buffer.len() - 1];
-                        str::from_utf8_unchecked(buf).parse::<u32>()
-                    } {
-                        Ok(n) => n,
-                        // TODO: emit \u{FFFD} on Overflow, Underflow and panic otherwise
-                        // See rust-lang/rust#22639
-                        // Err(Overflow/Underflow) => {
-                        // self.buf_set_str("\u{FFFD}");
-                        // return self.consume_buffer().unwrap();
-                        // }
-                        Err(e) => panic!("Could not decode parsed int: {:?}", e)
-                    };
-                    return self.parse_codepoint(codepoint);
+                Some(v@b'0'...b'9') => if value < 0x10FFFF {
+                    value = (value * 10) + ((v - b'0') as u32);
                 },
-                _ => return 0x26 // not a valid decimal character reference
-            }
-
+                Some(b';') => { // end of the character reference.
+                    return if value >= 0x10FFFF { // Overflow
+                        self.buf_set_str("\u{FFFD}");
+                        self.consume_buffer().unwrap()
+                    } else {
+                        self.parse_codepoint(value)
+                    };
+                },
+                _ => return b'&' // not a valid decimal character reference
+            };
         }
     }
 
@@ -326,7 +305,7 @@ mod test {
         run_test("&#0;&#33;", "�!"); // REPLACEMENT CHARACTER intended here 😉
         run_test("&#11822;&#33;", "⸮!");
         run_test("&#65533;", "�"); // REPLACEMENT CHARACTER intended here 😉
-        // run_test("&#1231231231231231232123123;", "�"); // REPLACEMENT CHARACTER intended here 😉
+        run_test("&#1234567890;", "�"); // REPLACEMENT CHARACTER intended here 😉
     }
 
     #[test]
@@ -344,7 +323,7 @@ mod test {
         run_test("&#x2e2E;&#x21;", "⸮!");
         run_test("&#x2E2e;&#x21;", "⸮!");
         run_test("&#xfffd;", "�"); // REPLACEMENT CHARACTER intended here 😉
-        // run_test("&#1231231231231231232123123;", "�"); // REPLACEMENT CHARACTER intended here 😉
+        run_test("&#x1234567890ABCDEF;", "�"); // REPLACEMENT CHARACTER intended here 😉
     }
 
     #[test]
