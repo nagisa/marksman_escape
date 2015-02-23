@@ -2,7 +2,7 @@
 extern crate test;
 extern crate marksman_escape;
 
-use test::Bencher;
+use test::{Bencher, black_box};
 use marksman_escape::Escape;
 use std::str::StrExt;
 
@@ -23,7 +23,9 @@ a<cd>f{bcd}f<bcd>f{bc}e'ab\"d?f@b!d`f{bcd}f&b=d+f(bcd)f%bc$e!s[ytr]02\u{A0}a<cd>
 fn escape_mixed(b: &mut Bencher){
     b.bytes = MX_ESCAPES.len() as u64;
     b.iter(||{
-        for _ in Escape::new(MX_ESCAPES.bytes()){}
+        for _ in Escape::new(MX_ESCAPES.bytes()){
+            black_box(());
+        }
     });
 }
 
@@ -56,7 +58,9 @@ fabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdeffabcdefabcdefabcdefabcdef
 fn escape_no_spec(b: &mut Bencher){
     b.bytes = NO_ESCAPES.len() as u64;
     b.iter(||{
-        for _ in Escape::new(NO_ESCAPES.bytes()) {}
+        for _ in Escape::new(NO_ESCAPES.bytes()) {
+            black_box(());
+        }
     });
 }
 
@@ -73,7 +77,9 @@ static ALL_ESCAPES_SHORT : &'static str = r##"<><><><><><><><><><><><><><><><><>
 fn escape_spec_short(b: &mut Bencher){
     b.bytes = ALL_ESCAPES_SHORT.len() as u64;
     b.iter(||{
-        for _ in Escape::new(ALL_ESCAPES_SHORT.bytes()) {}
+        for _ in Escape::new(ALL_ESCAPES_SHORT.bytes()) {
+            black_box(());
+        }
     });
 }
 
@@ -90,6 +96,8 @@ static ALL_ESCAPES_LONG : &'static str = "[]{}[]{}[]{}[]{}[]{}[]{}[]{}[]{}[]{}[]
 fn escape_spec_long(b: &mut Bencher){
     b.bytes = ALL_ESCAPES_LONG.len() as u64;
     b.iter(||{
-        for _ in Escape::new(ALL_ESCAPES_LONG.bytes()) {}
+        for _ in Escape::new(ALL_ESCAPES_LONG.bytes()) {
+            black_box(());
+        }
     });
 }

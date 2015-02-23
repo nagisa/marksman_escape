@@ -39,8 +39,7 @@ const LONGEST_ESCAPE : usize = 6;
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 pub struct Escape<I: Iterator<Item=u8>> {
     inner: I,
-    idx: usize,
-    inner_buffer: &'static [u8; LONGEST_ESCAPE]
+    buffer: u64
 }
 
 
@@ -56,59 +55,46 @@ impl<I: Iterator<Item=u8>> Escape<I> {
     /// assert_eq!("&lt;hello&gt;&amp;world&lt;/hello&gt;", &*escaped);
     /// ```
     pub fn new(i: I) -> Escape<I> {
-        static ZERO : [u8; LONGEST_ESCAPE] = [0; LONGEST_ESCAPE];
         Escape {
             inner: i,
-            idx: 0,
-            inner_buffer: &ZERO
+            buffer: 0
         }
     }
-}
-
-macro_rules! set_buf {
-    ($o:expr, $x:expr) => {{
-        static ESCAPE : [u8; LONGEST_ESCAPE] = $x;
-        $o.idx = 0;
-        $o.inner_buffer = &ESCAPE;
-        Some(b'&')
-    }}
 }
 
 impl<I: Iterator<Item=u8>> Iterator for Escape<I> {
     type Item = u8;
 
     fn next(&mut self) -> Option<u8> {
-        unsafe {
-            if *self.inner_buffer.get_unchecked(self.idx) != 0 {
-                let r = *self.inner_buffer.get_unchecked(self.idx);
-                self.idx += 1;
-                return Some(r);
-            }
-        }
-        if let Some(ch) = self.inner.next() {
-            match ch {
+        if self.buffer != 0 {
+            let ret = Some(self.buffer as u8);
+            self.buffer >>= 8;
+            ret
+        } else if let Some(ch) = self.inner.next() {
+            self.buffer = match ch {
                 // Basic escapes
-                b'&'  => set_buf!(self, [b'a', b'm', b'p', b';', 0, 0]),
-                b'>'  => set_buf!(self, [b'g', b't', b';', 0, 0, 0]),
-                b'<'  => set_buf!(self, [b'l', b't', b';', 0, 0, 0]),
-                b'"'  => set_buf!(self, [b'#', b'3', b'4', b';', 0, 0]),
-                b'\'' => set_buf!(self, [b'#', b'3', b'9', b';', 0, 0]),
-                b'`'  => set_buf!(self, [b'#', b'9', b'6', b';', 0, 0]),
+                b'&'  => 0x3b_70_6d_61,    // amp;
+                b'>'  => 0x3b_74_67,       // gt;
+                b'<'  => 0x3b_74_6c,       // lt;
+                b'"'  => 0x3b_34_33_23,    // #34;
+                b'\'' => 0x3b_39_33_23,    // #39;
+                b'`'  => 0x3b_36_39_23,    // #96;
                 // These only matter in cases where attributes are not quoted.
-                b'!'  => set_buf!(self, [b'#', b'3', b'3', b';', 0, 0]),
-                b'$'  => set_buf!(self, [b'#', b'3', b'6', b';', 0, 0]),
-                b'%'  => set_buf!(self, [b'#', b'3', b'7', b';', 0, 0]),
-                b'('  => set_buf!(self, [b'#', b'4', b'0', b';', 0, 0]),
-                b')'  => set_buf!(self, [b'#', b'4', b'1', b';', 0, 0]),
-                b'+'  => set_buf!(self, [b'#', b'4', b'3', b';', 0, 0]),
-                b'='  => set_buf!(self, [b'#', b'6', b'1', b';', 0, 0]),
-                b'@'  => set_buf!(self, [b'#', b'6', b'4', b';', 0, 0]),
-                b'['  => set_buf!(self, [b'#', b'9', b'1', b';', 0, 0]),
-                b']'  => set_buf!(self, [b'#', b'9', b'3', b';', 0, 0]),
-                b'{'  => set_buf!(self, [b'#', b'1', b'2', b'3', b';', 0]),
-                b'}'  => set_buf!(self, [b'#', b'1', b'2', b'5', b';', 0]),
-                _     => Some(ch)
-            }
+                b'!'  => 0x3b_33_33_23,    // #33;
+                b'$'  => 0x3b_36_33_23,    // #36;
+                b'%'  => 0x3b_37_33_23,    // #37;
+                b'('  => 0x3b_30_34_23,    // #40;
+                b')'  => 0x3b_31_34_23,    // #41;
+                b'+'  => 0x3b_33_34_23,    // #43;
+                b'='  => 0x3b_31_36_23,    // #61;
+                b'@'  => 0x3b_34_36_23,    // #64;
+                b'['  => 0x3b_31_39_23,    // #91;
+                b']'  => 0x3b_33_39_23,    // #93;
+                b'{'  => 0x3b_33_32_31_23, // #123;
+                b'}'  => 0x3b_35_32_31_23, // #125;
+                _     => return Some(ch)
+            };
+            Some(b'&')
         } else {
             None
         }
