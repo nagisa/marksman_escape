@@ -9,12 +9,13 @@ Anyway, here’s the (totally unscientific) numbers on Intel’s i7-4750HQ@2.00G
 them:
 
 ```ignore
-test no_escape_no_spec_bytes     ... bench:      1153 ns/iter (+/- 6)  = 915 MB/s
-test no_escape_no_spec_chars     ... bench:      2486 ns/iter (+/- 14) = 424 MB/s
+test no_escape_bytes        ... bench:      1109 ns/iter (+/- 56) = 952 MB/s
+test no_escape_bytes_filter ... bench:      2725 ns/iter (+/- 151) = 387 MB/s
+test no_escape_chars        ... bench:      2695 ns/iter (+/- 144) = 391 MB/s
 ```
 
-Above is the speed at which iterators of bytes and unicode characters, respectively, can be
-consumed without doing anything else. This serves as a benchmark anchor to compare with, so it is
+We have 3 benchmarks: two to check how fast can iterators be consumed and one to benchmark the bare
+minimum filtering of the stream. These benchmarks serve as an anchor to compare with, so it is
 clear how much overhead escaping and unescaping introduce.
 
 ```ignore
