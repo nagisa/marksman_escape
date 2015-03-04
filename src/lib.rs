@@ -24,10 +24,10 @@
 //! test escape_spec_long        ... bench:      5515 ns/iter (+/- 157) = 117 MB/s
 //! test escape_spec_short       ... bench:      4324 ns/iter (+/- 94)  = 150 MB/s
 //!
-//! test unescape_no_spec        ... bench:      8052 ns/iter (+/- 291) = 218 MB/s
-//! test unescape_spec_hex       ... bench:      5692 ns/iter (+/- 230) = 147 MB/s
-//! test unescape_spec_named     ... bench:      8582 ns/iter (+/- 360) = 102 MB/s
-//! test unescape_spec_num       ... bench:      6078 ns/iter (+/- 240) = 138 MB/s
+//! test unescape_no_spec        ... bench:      7228 ns/iter (+/- 7)   = 242 MB/s
+//! test unescape_spec_hex       ... bench:      3024 ns/iter (+/- 191) = 277 MB/s
+//! test unescape_spec_named     ... bench:      8073 ns/iter (+/- 386) = 109 MB/s
+//! test unescape_spec_num       ... bench:      2995 ns/iter (+/- 195) = 280 MB/s
 //! ```
 //!
 //! Note, that both escape and unescape benchmarks test how fast the input is consumed, rather than
