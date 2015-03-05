@@ -122,14 +122,14 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
         self.unext()
     }
 
-    fn unescape_named(&mut self, _byte: u8) -> u8 {
-        use unescape_named::{TRIE, match_ref_continue};
+    fn unescape_named(&mut self, byte: u8) -> u8 {
+        use unescape_named::Matcher;
         use unescape_named::RefMatch::*;
-        let mut cont = &TRIE;
-        let mut from = 0;
+        let mut matcher = Matcher::new();
+        matcher.feed_byte(byte);
         loop {
             match self.read_to_buffer() {
-                Some(b';') => match match_ref_continue(&self.buffer[from..], cont) {
+                Some(b';') => match matcher.feed_byte(b';') {
                     Match(m) => {
                         self.drop_buffer();
                         self.buffer.push_all(m);
@@ -137,14 +137,10 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
                     },
                     _ => return b'&'
                 },
-                Some(b'a'...b'z') | Some(b'A'...b'Z') | Some(b'0'...b'9') => {
-                    match match_ref_continue(&self.buffer[from..], cont) {
+                Some(b@b'a'...b'z') | Some(b@b'A'...b'Z') | Some(b@b'0'...b'9') => {
+                    match matcher.feed_byte(b) {
                         Mismatch   => return b'&',
-                        Partial(c) => {
-                            cont = c;
-                            from = self.buffer.len();
-                            continue;
-                        },
+                        Partial => continue,
                         Match(m) => {
                             self.drop_buffer();
                             self.buffer.push_all(m);

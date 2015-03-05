@@ -1,59 +1,48 @@
-#![allow(dead_code)]
-use std::ptr::PtrExt;
-
 pub enum RefMatch {
     Match(&'static [u8]),
-    Partial(&'static Trie),
-    Mismatch,
+    Partial,
+    Mismatch
 }
 
-pub struct Trie(&'static [TP], u16, u8);
+pub struct Trie(&'static [Option<&'static Trie>], u16, u8);
+static NULL_TRIE: Trie = Trie(&[], !0, !0);
 
-type P = *const Trie;
-pub struct TP(*const Trie);
-unsafe impl Sync for TP {}
-unsafe impl Send for TP {}
-const N: TP = TP(0 as *const _);
+pub struct Matcher(&'static Trie);
 
-
-pub fn get_named_ref(name: &[u8]) -> Option<&'static [u8]> {
-    if name.len() == 0 {
-        return None
+impl Matcher {
+    #[inline]
+    pub fn new() -> Matcher {
+        Matcher(&TRIE)
     }
-    match match_ref(name) {
-        RefMatch::Match(r) => Some(r),
-        _                  => None
-    }
-}
 
-pub fn match_ref(name: &[u8]) -> RefMatch {
-    match_ref_continue(name, &TRIE)
-}
-
-pub fn match_ref_continue(name: &[u8], begin: &'static Trie) -> RefMatch {
-    let mut begin = begin;
-    for i in 0..name.len() {
-        let letter = unsafe { *name.get_unchecked(i) };
-        if begin.2 <= letter {
-            let idx = (letter - begin.2) as usize;
-            let tp = if begin.0.len() > idx {
-                unsafe { begin.0.get_unchecked(idx).0.as_ref() }
-            } else {
-                return RefMatch::Mismatch;
-            };
-            begin = if let Some(t) = tp {
-                t
-            } else {
-                return RefMatch::Mismatch;
-            };
+    #[inline]
+    pub fn feed_byte(&mut self, byte: u8) -> RefMatch {
+        let idx = (byte as isize - (self.0).2 as isize) as usize; // wrapping is fine
+        self.0 = if let Some(Some(el)) = (self.0).0.get(idx).cloned() {
+            el
         } else {
+            self.0 = &NULL_TRIE;
             return RefMatch::Mismatch;
+        };
+        if (self.0).1 == !0 {
+            RefMatch::Partial
+        } else {
+            RefMatch::Match(unsafe { DECODED.get_unchecked((self.0).1 as usize) })
         }
     }
-    if begin.1 == 0xffff {
-        RefMatch::Partial(begin)
+}
+
+#[inline]
+pub fn get_named_ref(name: &[u8]) -> Option<&'static [u8]> {
+    let mut matcher = Matcher::new();
+    let mut r = RefMatch::Mismatch;
+    for i in name {
+        r = matcher.feed_byte(*i);
+    }
+    if let RefMatch::Match(m) = r {
+        Some(m)
     } else {
-        return RefMatch::Match(unsafe { DECODED.get_unchecked(begin.1 as usize) });
+        None
     }
 }
 

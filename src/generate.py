@@ -32,9 +32,9 @@ class TrieBuilder:
 
 def null_or_trie(e):
     if e == 0:
-        return 'N'
+        return 'None'
     else:
-        return 'TP(&{} as P)'.format(e)
+        return 'Some(&{})'.format(e)
 
 def to_escapes(w):
     return ''.join("\\x{:02X}".format(x) for x in bytes(w, 'utf-8'))
