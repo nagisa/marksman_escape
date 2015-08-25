@@ -33,7 +33,6 @@
 //! Note, that both escape and unescape benchmarks test how fast the input is consumed, rather than
 //! produced. They are likely to improve further as codegen for `Iterator`s is improved and my own
 //! battles against LLVM are concluded.
-#![feature(unicode,core,collections)]
 
 pub use escape::{Escape};
 pub use unescape::{Unescape};

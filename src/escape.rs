@@ -1,5 +1,3 @@
-use std::num::Int;
-
 const LONGEST_ESCAPE : usize = 6;
 
 /// Escape a byte stream with HTML-encoded variants of certain characters.

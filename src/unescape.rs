@@ -1,4 +1,5 @@
 use std::char;
+use std::io::Write;
 
 use unescape_named::LONGEST_NAMED_REFERENCE;
 
@@ -107,18 +108,21 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
                 | 0x007F...0x009F
                 | 0xFDD0...0xFDEF => "\u{FFFD}",
                 chr  => if let Some(chr) = char::from_u32(chr) {
-                    unsafe {
-                        self.buffer.set_len(4);
-                        let len = chr.encode_utf8(&mut self.buffer[..]).unwrap();
-                        self.buffer.set_len(len);
-                        return self.unext();
-                    }
+                    let mut utf8 = [0u8; 4];
+                    let bytes_written = {
+                        let mut buffer = &mut utf8[..];
+                        write!(buffer, "{}", chr).unwrap();
+                        4 - buffer.len()
+                    };
+                    self.buffer = utf8[..bytes_written].to_vec();
+
+                    return self.unext();
                 } else {
                     "\u{FFFD}"
                 }
             }
         };
-        self.buffer.push_all(string.as_bytes());
+        self.buffer.extend(string.bytes());
         self.unext()
     }
 
@@ -132,7 +136,7 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
                 Some(b';') => match matcher.feed_byte(b';') {
                     Match(m) => {
                         self.drop_buffer();
-                        self.buffer.push_all(m);
+                        self.buffer.extend(m);
                         return self.unext();
                     },
                     _ => return b'&'
@@ -143,7 +147,7 @@ impl<I: Iterator<Item=u8>> Unescape<I> {
                         Partial => continue,
                         Match(m) => {
                             self.drop_buffer();
-                            self.buffer.push_all(m);
+                            self.buffer.extend(m);
                             // Check for ; next
                             let oldl = self.buffer.len();
                             if let Some(b';') = self.read_to_buffer() {
