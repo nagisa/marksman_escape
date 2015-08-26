@@ -1,7 +1,7 @@
 [package]
 
 name = "marksman_escape"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Simonas Kazlauskas <git@kazlauskas.me>"]
 description = "HTML escape and HTML unescape strings"
 keywords = ["encode", "decode", "sanitise", "sanitize"]
